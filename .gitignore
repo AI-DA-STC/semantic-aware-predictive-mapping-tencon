@@ -1,0 +1,15 @@
+checkpoints/
+dataset/
+
+*.pt
+*.pth
+*.tar.gz
+*.zip
+
+*.idea/
+*.vscode/
+
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
