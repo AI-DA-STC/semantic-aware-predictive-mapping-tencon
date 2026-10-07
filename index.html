@@ -1,0 +1,318 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="description" content="Semantic-Aware Predictive Mapping for Exploration and Navigation — TENCON 2026 project page." />
+  <meta name="theme-color" content="#f7f8fb" />
+  <title>Semantic-Aware Predictive Mapping for Exploration and Navigation</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="site-header">
+    <div class="shell nav">
+      <a class="brand" href="#top">Semantic-Aware Predictive Mapping</a>
+      <nav class="nav-links" aria-label="Primary navigation">
+        <a href="#motivation">Motivation</a>
+        <a href="#approach">Approach</a>
+        <a href="#evidence">Evidence</a>
+        <a href="#future">Future work</a>
+      </nav>
+      <a class="paper-link" href="paper.pdf">Paper PDF ↗</a>
+    </div>
+    <div class="reading-progress" id="readingProgress"></div>
+  </header>
+
+  <main id="top">
+    <section class="hero shell">
+      <div class="hero-copy">
+        <p class="venue">TENCON 2026 · Robotics · Predictive Mapping</p>
+        <h1>Semantic-Aware Predictive Mapping for Exploration and Navigation</h1>
+        <p class="hero-question">When geometry is ambiguous, can semantic meaning change what a predictive map infers about unseen space?</p>
+        <div class="authors">
+          <span><strong>Kenneth J.K. Ong</strong></span>
+          <span><strong>William W.J. Teo</strong></span>
+          <small>NEAR Lab · AI.R STC, GTO, ST Engineering · National University of Singapore</small>
+        </div>
+        <div class="hero-actions">
+          <a class="button primary" href="paper.pdf">Read the paper</a>
+          <a class="button secondary" href="#citation">BibTeX</a>
+        </div>
+      </div>
+
+      <div class="hero-visual" aria-label="Two corridor scenes with different semantic structure">
+        <div class="corridor-pair">
+          <figure>
+            <img src="assets/corridor_door_deck.jpg" alt="Corridor scene containing a closed door" />
+            <figcaption><strong>Door</strong><span>potential connection</span></figcaption>
+          </figure>
+          <figure>
+            <img src="assets/corridor_wall_deck.jpg" alt="Similar corridor scene without a door" />
+            <figcaption><strong>Wall</strong><span>structural boundary</span></figcaption>
+          </figure>
+        </div>
+        <p class="hero-visual-caption">Different semantic structure can collapse to the same occupied geometry.</p>
+      </div>
+    </section>
+
+    <article class="story">
+      <section id="motivation" class="story-section shell narrow">
+        <p class="kicker">The problem</p>
+        <h2>The same geometric observation can correspond to very different underlying structures.</h2>
+        <p class="lead">Occupancy maps are powerful because they reduce the world to a planning-friendly representation: free, occupied, and unknown space. But this abstraction can discard semantic meaning.</p>
+        <p>A closed door is a simple example. In an occupancy map it can look like a wall: both are occupied barriers. Yet they do not mean the same thing. A wall usually terminates connectivity; a door can indicate a room, corridor, or traversable region beyond the current observation.</p>
+
+        <div class="meaning-explorer" aria-label="Explore how different corridor scenes can map to the same occupancy geometry">
+          <div class="meaning-copy">
+            <span class="condition-chip">Interactive</span>
+            <h3>Change the scene. The occupancy geometry stays the same.</h3>
+            <p>Switch between the two corridor scenes from the presentation. The semantic interpretation changes, while the geometric occupancy view remains unchanged.</p>
+            <div class="segmented meaning-tabs" role="tablist" aria-label="Corridor scene">
+              <button class="meaning-tab active" data-scene="door" role="tab" aria-selected="true">Door scene</button>
+              <button class="meaning-tab" data-scene="wall" role="tab" aria-selected="false">Wall scene</button>
+            </div>
+          </div>
+          <div class="meaning-visual">
+            <figure class="scene-card">
+              <span class="mini-label">Scene</span>
+              <img id="sceneImage" src="assets/corridor_door_deck.jpg" alt="Corridor containing a closed door" />
+              <figcaption id="sceneCaption">Semantically: a door can indicate connected space beyond.</figcaption>
+            </figure>
+            <div class="mapping-arrow" aria-hidden="true">→</div>
+            <figure class="scene-card fixed-map">
+              <span class="mini-label">Occupancy view</span>
+              <img src="assets/deck_geometry_input.jpg" alt="Occupancy representation in which the barrier is encoded geometrically" />
+              <figcaption>Geometrically: both cases can appear simply as occupied space.</figcaption>
+            </figure>
+          </div>
+        </div>
+
+        <aside class="pullquote">
+          <span>Geometry says:</span>
+          <strong>“occupied.”</strong>
+          <span>Semantics can add:</span>
+          <strong>“this occupied structure is a door.”</strong>
+        </aside>
+      </section>
+
+      <section class="story-section shell split editorial">
+        <div>
+          <p class="kicker">Why predictive mapping</p>
+          <h2>This ambiguity becomes especially important when the map predicts what has not yet been seen.</h2>
+        </div>
+        <div class="prose">
+          <p>Predictive mapping extends a partial occupancy map by estimating plausible structure in unseen regions. Those predictions can support navigation and exploration by exposing possible rooms, corridors, and connections before the robot directly observes them.</p>
+          <p>If a predictive model interprets a door exactly like a wall, its predicted layout may stop at the boundary. If it knows that the occupied segment is a door, the same local geometry carries additional information about possible connectivity beyond it.</p>
+          <p class="note">This work studies that narrow question: whether adding explicit door semantics changes predictive occupancy completion where geometry alone is ambiguous.</p>
+        </div>
+      </section>
+
+      <section id="approach" class="story-section shell">
+        <div class="section-heading">
+          <p class="kicker">Approach</p>
+          <h2>Keep the geometry. Add one semantic signal.</h2>
+          <p>We build on <a class="inline-citation" href="https://arxiv.org/abs/2508.03027" target="_blank" rel="noopener">CogniPlan</a> <a class="reference-marker" href="#ref-cogniplan">[1]</a>, a predictive mapping framework for inferring unseen geometric layouts from partial occupancy observations. We compare two inputs that differ only in whether the model receives an explicit door channel.</p>
+        </div>
+
+        <div class="interactive-method">
+          <div class="method-controls">
+            <div role="tablist" aria-label="Input condition" class="method-tabset">
+              <button class="method-tab active" data-condition="geometry" role="tab" aria-selected="true">Geometry only</button>
+              <button class="method-tab" data-condition="semantic" role="tab" aria-selected="false">+ Door semantics</button>
+            </div>
+            <a class="corridor-reference" href="#motivation">↖ Refer back to the door / wall corridor example</a>
+          </div>
+
+          <div class="method-pipeline">
+            <figure class="pipeline-card scene-reference">
+              <span class="mini-label">Reference scene</span>
+              <img src="assets/corridor_door_deck.jpg" alt="Corridor with a closed door used as the semantic reference" />
+              <figcaption>The physical scene contains a door.</figcaption>
+            </figure>
+
+            <div class="pipeline-arrow" aria-hidden="true">→</div>
+
+            <figure class="pipeline-card zoomable" id="inputFigure" data-lightbox-src="assets/deck_geometry_input.jpg">
+              <span class="mini-label">Model input</span>
+              <img id="conditionInputImage" src="assets/deck_geometry_input.jpg" alt="Geometry-only occupancy input from the presentation" />
+              <figcaption id="conditionCaption">The door is encoded exactly like a wall.</figcaption>
+            </figure>
+
+            <div class="pipeline-arrow" aria-hidden="true">→</div>
+
+            <figure class="pipeline-card zoomable prediction-card" id="predictionFigure" data-lightbox-src="assets/deck_geometry_prediction.jpg">
+              <span class="mini-label">Illustrative prediction</span>
+              <img id="conditionPredictionImage" src="assets/deck_geometry_prediction.jpg" alt="Geometry-only predictive mapping illustration from the presentation" />
+              <figcaption id="predictionCaption">The predicted layout terminates at the ambiguous boundary in this illustration.</figcaption>
+            </figure>
+          </div>
+
+          <div class="method-explanation compact">
+            <span class="condition-chip" id="conditionChip">Geometry only</span>
+            <h3 id="conditionTitle">Same scene, less meaning in the input.</h3>
+            <p id="conditionText">The occupancy input contains no explicit information that the occupied segment is a door rather than a wall.</p>
+            <p class="outcome" id="conditionOutcome"><strong>Question:</strong> does adding the door cue change what the predictive map infers beyond that boundary?</p>
+            <p class="illustration-note">The corridor and prediction panels above are conceptual presentation illustrations. Experimental evidence is shown in the results section below.</p>
+          </div>
+        </div>
+
+        <details class="method-details">
+          <summary>Experimental details</summary>
+          <div class="details-grid">
+            <div><strong>Training set</strong><span>500 rooms; 50 modified with artificial door segments</span></div>
+            <div><strong>Evaluation set</strong><span>5 rooms, 7 layouts, 8 total doors</span></div>
+            <div><strong>Training</strong><span>500,000 iterations, batch size 32</span></div>
+            <div><strong>Metrics</strong><span>L1, F1, and IoU on full maps and localized door regions</span></div>
+          </div>
+        </details>
+      </section>
+
+      <section class="story-section full-bleed soft-bg">
+        <div class="shell split figure-story">
+          <div class="prose">
+            <p class="kicker">Dataset construction</p>
+            <h2>A controlled ambiguity, with the ground truth unchanged.</h2>
+            <p>Artificial door segments are inserted only into the partial observations. The ground-truth layout remains the same for both conditions. This lets us ask whether door semantics help the model recover connected unseen structure without changing the target map.</p>
+            <button class="text-button" data-open-lightbox="assets/dataset_mod.jpg">Open the full dataset figure ↗</button>
+          </div>
+          <figure class="paper-figure zoomable" data-lightbox-src="assets/dataset_mod.jpg">
+            <img src="assets/dataset_mod.jpg" alt="Dataset modification procedure showing original, control, semantic door cue, and ground truth" />
+            <figcaption>Dataset modification used in the paper.</figcaption>
+          </figure>
+        </div>
+      </section>
+
+      <section class="story-section shell narrow">
+        <p class="kicker">Evaluation</p>
+        <h2>Measure the whole map — then look specifically where the ambiguity lives.</h2>
+        <p class="lead">Full-map metrics tell us whether the semantic cue broadly changes occupancy prediction. A second evaluation restricts the calculation to unknown cells within a 10-pixel radius around annotated doors.</p>
+        <div class="evaluation-inline">
+          <figure class="zoomable" data-lightbox-src="assets/evaluation_region.png">
+            <img src="assets/evaluation_region.png" alt="Localized 10-pixel evaluation region around a door" />
+          </figure>
+          <div>
+            <h3>Why a local mask?</h3>
+            <p>The hypothesis is about connectivity around doors, not about improving every pixel in the map. The local mask focuses the evaluation on the region where the semantic distinction should matter.</p>
+            <p class="small">For IoU and F1, model outputs in [−1, 1] are thresholded at 0.</p>
+          </div>
+        </div>
+      </section>
+
+      <section id="evidence" class="story-section shell">
+        <div class="section-heading">
+          <p class="kicker">Evidence</p>
+          <h2>The effect is localized rather than global.</h2>
+          <p>Switch between the two evaluation views. The full map remains broadly similar; the strongest change appears in the targeted door-adjacent region.</p>
+        </div>
+
+        <div class="evidence-explorer">
+          <div class="evidence-tabs" role="tablist" aria-label="Evaluation scope">
+            <button class="evidence-tab active" data-scope="full" role="tab" aria-selected="true">Full map</button>
+            <button class="evidence-tab" data-scope="door" role="tab" aria-selected="false">Door region</button>
+          </div>
+
+          <div class="evidence-panel">
+            <div class="evidence-copy">
+              <span class="scope-label" id="scopeLabel">Full-map evaluation</span>
+              <h3 id="scopeTitle">Globally, the two models are broadly similar.</h3>
+              <p id="scopeText">The semantic cue is localized, while full-map metrics are dominated by broader layout structure. The semantic-cued model slightly lowers L1, while F1 and IoU are slightly lower.</p>
+              <p class="caveat" id="scopeCaveat">This is important: the paper does not claim that door semantics improve global map completion.</p>
+            </div>
+            <div class="metric-grid" id="metricGrid">
+              <div class="metric-card"><span>L1 ↓</span><strong id="m1Geo">0.389160</strong><small>Geometry</small><strong class="accent" id="m1Sem">0.388029</strong><small>Semantic</small></div>
+              <div class="metric-card"><span>F1 ↑</span><strong id="m2Geo">0.681828</strong><small>Geometry</small><strong class="accent" id="m2Sem">0.675030</strong><small>Semantic</small></div>
+              <div class="metric-card"><span>IoU ↑</span><strong id="m3Geo">0.517253</strong><small>Geometry</small><strong class="accent" id="m3Sem">0.509469</strong><small>Semantic</small></div>
+            </div>
+          </div>
+        </div>
+
+        <div class="qualitative-explorer">
+          <div class="qualitative-copy">
+            <p class="kicker">Qualitative comparison</p>
+            <h3>What changes in the predicted layout?</h3>
+            <p>Toggle the condition to inspect the same type of door-induced ambiguity. Geometry-only predictions often terminate at the door boundary; semantic-cued predictions more consistently continue into connected regions.</p>
+            <div class="segmented">
+              <button class="qual-btn active" data-qual="geometry">Geometry only</button>
+              <button class="qual-btn" data-qual="semantic">+ Door semantics</button>
+            </div>
+          </div>
+          <figure class="qualitative-image zoomable" data-lightbox-src="assets/qual_geometry.png">
+            <img id="qualImage" src="assets/qual_geometry.png" alt="Geometry-only qualitative predictive mapping examples" />
+            <figcaption id="qualCaption">Geometry-only examples: predicted layouts can terminate at door boundaries.</figcaption>
+          </figure>
+        </div>
+
+        <div class="evidence-note">
+          <strong>Read the local result carefully.</strong>
+          <p>The localized mask covers few cells and the evaluation set contains 5 rooms, 7 layouts, and 8 doors. Perfect local F1/IoU should be interpreted as a focused proof-of-concept result, not a global benchmark or statistical estimate of general performance.</p>
+        </div>
+      </section>
+
+      <section class="story-section full-bleed dark-band">
+        <div class="shell takeaway">
+          <p class="kicker light">Takeaway</p>
+          <h2>Semantics does not replace geometry. It can tell a predictive map what a geometric structure means.</h2>
+          <p>Doors are deliberately simple. The broader idea is that semantic meaning can help distinguish permanent barriers from potentially connected space when occupancy geometry alone is ambiguous.</p>
+        </div>
+      </section>
+
+      <section id="future" class="story-section shell">
+        <div class="section-heading left">
+          <p class="kicker">Future work</p>
+          <h2>From localized prediction to embodied navigation, exploration, and interaction.</h2>
+        </div>
+        <div class="future-grid">
+          <article><span>Simulation</span><h3>Does better connectivity prediction change behavior?</h3><p>Measure exploration coverage, path efficiency, waypoint selection, and uncertainty-aware planning in simulated environments.</p></article>
+          <article><span>Real robots</span><h3>Does the idea survive real sensing?</h3><p>Evaluate semantic-aware prediction under sensor noise, imperfect semantic detection, and partial observations on physical platforms.</p></article>
+          <article><span>Manipulation</span><h3>Can the robot act on the semantic meaning?</h3><p>Connect prediction with capabilities such as approaching, opening, and traversing doors instead of treating them only as map annotations.</p></article>
+          <article><span>Richer semantics</span><h3>Beyond doors.</h3><p>Automatically extract navigation-relevant structures using semantic perception or vision-language models and study other forms of geometric ambiguity.</p></article>
+        </div>
+      </section>
+
+      <section id="citation" class="story-section shell citation-section">
+        <div>
+          <p class="kicker">Citation</p>
+          <h2>Semantic-Aware Predictive Mapping for Exploration and Navigation</h2>
+          <p>Kenneth J.K. Ong and William W.J. Teo · TENCON 2026</p>
+          <p class="small">One illustrative corridor image was generated using OpenAI DALL·E for conceptual visualization and was not used as experimental data or evaluation results.</p>
+
+          <div class="references-block" aria-labelledby="references-heading">
+            <h3 id="references-heading">Referenced work</h3>
+            <ol class="references-list">
+              <li id="ref-cogniplan">
+                Y. Wang, H. He, J. Liang, Y. Cao, R. Chakraborty, and G. Sartoretti,
+                “CogniPlan: Uncertainty-guided path planning with conditional generative layout prediction,”
+                <em>arXiv preprint arXiv:2508.03027</em>, 2025.
+                <a href="https://arxiv.org/abs/2508.03027" target="_blank" rel="noopener">Paper ↗</a>
+              </li>
+            </ol>
+          </div>
+        </div>
+        <div class="bib-wrap">
+          <button id="copyBib" class="button secondary" type="button">Copy BibTeX</button>
+          <pre id="bibtex">@inproceedings{ong2026semantic,
+  title     = {Semantic-Aware Predictive Mapping for Exploration and Navigation},
+  author    = {Ong, Kenneth J. K. and Teo, William W. J.},
+  booktitle = {TENCON 2026},
+  year      = {2026}
+}</pre>
+        </div>
+      </section>
+    </article>
+  </main>
+
+  <footer>
+    <div class="shell footer-inner">
+      <span>Semantic-Aware Predictive Mapping · TENCON 2026</span>
+      <a href="paper.pdf">Paper PDF ↗</a>
+    </div>
+  </footer>
+
+  <dialog class="lightbox" id="lightbox">
+    <button class="lightbox-close" id="lightboxClose" aria-label="Close image">×</button>
+    <img id="lightboxImage" alt="Expanded research figure" />
+  </dialog>
+
+  <script src="script.js"></script>
+</body>
+</html>
