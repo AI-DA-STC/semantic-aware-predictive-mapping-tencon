@@ -75,13 +75,11 @@ class Dataset(data.Dataset):
         partial_img, partial_img_raw = self.crop_img(os.path.join(f"{self.data_path}/part", self.partial_map[index]), img_type='belief', rotation=data_aug)
         mask_img, mask_img_raw = self.crop_img(os.path.join(f"{self.data_path}/part", self.partial_map[index]), img_type='mask', rotation=data_aug)
         ground_truth, ground_truth_raw = self.crop_img(os.path.join(f"{self.data_path}/full", f"{map_name}.png"), img_type='gt', rotation=data_aug)
-        # partial_emb = torch.load(os.path.join(f"{self.data_path}/emb2", Path(self.partial_map[index]).stem + '_' + str(data_aug) + '.pt'))
-        partial_emb = torch.load(os.path.join(f"{self.data_path}/emb", Path(self.partial_map[index]).stem + '_' + str(data_aug) + '.pt'))
-        door_mask, _ = self.crop_img(os.path.join(f"{self.data_path}/door", self.partial_map[index]), img_type='door', rotation=data_aug)
-        # door_mask_new, _ = self.crop_img(os.path.join(f"{self.data_path}/door", self.partial_map[index]), img_type='door_new', rotation=data_aug)
+        # door_mask, _ = self.crop_img(os.path.join(f"{self.data_path}/door", self.partial_map[index]), img_type='door', rotation=data_aug)
+        door_mask_new, _ = self.crop_img(os.path.join(f"{self.data_path}/door", self.partial_map[index]), img_type='door_new', rotation=data_aug)
         # door_mask_new = None
 
-        door_mask_new = door_mask
+        # door_mask_new = door_mask
 
         if 'room' in map_name:
             index = torch.tensor(0)
@@ -95,7 +93,7 @@ class Dataset(data.Dataset):
 
 
         # return ground_truth, partial_img, partial_emb[0], door_mask_new, mask_img, map_onehot, (ground_truth_raw, partial_img_raw, mask_img_raw)
-        return ground_truth, partial_img, partial_emb[0], door_mask_new, mask_img, map_onehot, (ground_truth_raw, partial_img_raw, mask_img_raw)
+        return ground_truth, partial_img, door_mask_new, mask_img, map_onehot, (ground_truth_raw, partial_img_raw, mask_img_raw)
 
     def __len__(self):
         return len(self.partial_map)

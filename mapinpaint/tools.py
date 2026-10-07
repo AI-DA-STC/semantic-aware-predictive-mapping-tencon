@@ -28,7 +28,7 @@ def mask_loader(path):
         # img_np[img_np != 127] = 0
         # img_np[img_np == 127] = 255
         img = Image.fromarray(img_np)
-        img.save("mask.png")
+        # img.save("mask.png")
         return img
 
 def ground_truth_loader(path):
@@ -51,7 +51,7 @@ def door_loader(path):
         # img_np[img_np != 127] = 0
         # img_np[img_np == 127] = 255
         img = Image.fromarray(img_np)
-        img.save("door_mask.png")
+        # img.save("door_mask.png")
         return img
 
 
@@ -66,7 +66,7 @@ def door_loader_new(path):
         # img_np[img_np != 127] = 0
         # img_np[img_np == 127] = 255
         img = Image.fromarray(img_np)
-        img.save("door_mask.png")
+        # img.save("door_mask.png")
         return img
 
 def tensor_img_to_npimg(tensor_img):
@@ -254,46 +254,35 @@ def spatial_discounting_mask(config, masks):
     return spatial_discount_mask_tensor
 
 def door_discounting_mask(config, masks, mask_2):
-    """Generate spatial discounting mask.
-
-    Spatial discounting mask is first introduced in publication:
-        Generative Image Inpainting with Contextual Attention, Yu et al.
-    We reimplement the spatial mask to dynamically adapt to the shape of our irregular mask.
-
-    Returns:
-        tf.Tensor: spatial discounting mask
-
+    """Addtional mask to increase loss around doors to assist training in an imbalanced training dataset
     """
-    # gamma = config['spatial_discounting_gamma']
     gamma = 0.8
     masks_np = masks.detach().cpu().numpy()
     masks_np = 1 - masks_np
+
     B, C, H, W = masks_np.shape
     spatial_discount_mask = np.zeros((B, H, W), dtype=np.float32)
-    for i in range(B):
-        distance = distance_transform_edt(masks_np[i, 0])
-        spatial_discount_mask[i] = np.power(gamma, distance)
-    spatial_discount_mask = spatial_discount_mask[:, np.newaxis, :, :]
-    spatial_discount_mask_tensor = torch.tensor(spatial_discount_mask, dtype=torch.float32)
-    if config['cuda']:
-        spatial_discount_mask_tensor = spatial_discount_mask_tensor.cuda()
-    # Normalize the mask
-    spatial_discount_mask_tensor = spatial_discount_mask_tensor * mask_2
-    spatial_discount_mask_tensor = 10000. * spatial_discount_mask_tensor / (torch.sum(spatial_discount_mask_tensor, dim=(2,3), keepdim=True) + 1e-8)
+    if np.min(masks_np) == 0:   
+        for i in range(B):
+            distance = distance_transform_edt(masks_np[i, 0])
+            spatial_discount_mask[i] = np.power(gamma, distance)
+        spatial_discount_mask = spatial_discount_mask[:, np.newaxis, :, :]
+        spatial_discount_mask_tensor = torch.tensor(spatial_discount_mask, dtype=torch.float32)
+        if config['cuda']:
+            spatial_discount_mask_tensor = spatial_discount_mask_tensor.cuda()
+        # Normalize the mask
+        spatial_discount_mask_tensor = spatial_discount_mask_tensor * mask_2
+        spatial_discount_mask_tensor = 10000. * spatial_discount_mask_tensor / (torch.sum(spatial_discount_mask_tensor, dim=(2,3), keepdim=True) + 1e-8)
+    else: 
+        spatial_discount_mask_tensor = torch.tensor(spatial_discount_mask, dtype=torch.float32)
+        if config['cuda']:
+            spatial_discount_mask_tensor = spatial_discount_mask_tensor.cuda()
     return spatial_discount_mask_tensor
 
 def door_discounting_mask_2(config, masks, mask_2):
-    """Generate spatial discounting mask.
-
-    Spatial discounting mask is first introduced in publication:
-        Generative Image Inpainting with Contextual Attention, Yu et al.
-    We reimplement the spatial mask to dynamically adapt to the shape of our irregular mask.
-
-    Returns:
-        tf.Tensor: spatial discounting mask
-
+    """10-pixel radius mask around doors
     """
-    # gamma = config['spatial_discounting_gamma']
+
     gamma = 0.99
     masks_np = masks.detach().cpu().numpy()
     masks_np = (masks_np + 1)/2

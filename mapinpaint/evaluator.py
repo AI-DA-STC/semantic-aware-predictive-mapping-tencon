@@ -23,9 +23,9 @@ class Evaluator:
         self.netG.to(self.device)
 
     @torch.no_grad()
-    def eval_step(self, x, emb, door, mask, onehot, img_raw_size, ground_truth=None, calc_metrics=False):
+    def eval_step(self, x, door, mask, onehot, img_raw_size, ground_truth=None, calc_metrics=False):
         self.netG.eval()
-        x_out = self.netG(x, emb, mask, onehot)
+        x_out = self.netG(x, door, mask, onehot)
         inpainted_result = x_out * mask + x * (1. - mask)
         # inpainted_result = x_out
 
@@ -101,13 +101,8 @@ def calc_similarity(img1, img2):
 
 import torchvision.utils as vutils
 def calc_similarity_mask(img1, img2, mask):
-    vutils.save_image(img1, "img1.png")
-    vutils.save_image(img2, "img2.png")    
-    vutils.save_image(mask, "masking.png")
     img1 = img1*mask
     img2 = img2*mask
-    vutils.save_image(img1, "img1_mask.png")
-    vutils.save_image(img2, "img2_mask.png")
     mae = F.l1_loss(img1, img2).item()
     img1_flat = (img1 > 0).view(-1)
     img2_flat = (img2 > 0).view(-1)

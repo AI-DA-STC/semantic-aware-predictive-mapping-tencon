@@ -28,26 +28,13 @@ class Trainer(nn.Module):
             self.netG.to('cuda')
             self.netD.to('cuda')
 
-        # for param in self.netG.parameters():
-        #     param.requires_grad = False
 
-        # unfreeze = ["generator.conv12_1.conv.weight", "generator.conv12_1.conv.bias","generator.conv12_2.conv.weight", "generator.conv12_2.conv.bias"]
-        # for name, param in self.netG.named_parameters():
-        #     print(name)
-        #     if name in unfreeze:
-        #         print(f"{name} layer unfreezed")
-        #         param.requires_grad = True
-
-        # for param in self.netD.parameters():
-        #     param.requires_grad = False
-
-
-    def forward(self, x, emb, door, masks, ground_truth, map_onehot, compute_loss_g=False):
+    def forward(self, x, door, masks, ground_truth, map_onehot, compute_loss_g=False):
         self.train()
         l1_loss = nn.L1Loss()
         losses = {}
 
-        x_out = self.netG(x, emb, masks, map_onehot)
+        x_out = self.netG(x, door, masks, map_onehot)
         x_inpaint = x_out * masks + x * (1. - masks)
         # x_inpaint = x_out
 
@@ -64,7 +51,7 @@ class Trainer(nn.Module):
         if compute_loss_g:
             sd_mask = spatial_discounting_mask(self.config, masks)
             door_mask = door_discounting_mask(self.config,door,masks)
-            # sd_mask = sd_mask + door_mask*5
+            sd_mask = sd_mask*1 + door_mask*100
             x_inpaint_01 = (x_inpaint + 1) / 2
             ground_truth_01 = (ground_truth + 1) / 2
             intersection = (x_inpaint_01 * ground_truth_01).sum(dim=(1,2,3))
@@ -115,9 +102,9 @@ class Trainer(nn.Module):
 
         return gradient_penalty
 
-    def inference(self, x, emb, masks):
+    def inference(self, x, masks):
         self.eval()
-        x_out = self.netG(x, emb, masks)
+        x_out = self.netG(x, masks)
         x_inpaint = x_out * masks + x * (1. - masks)
         return x_inpaint
 

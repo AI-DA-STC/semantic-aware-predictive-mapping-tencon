@@ -85,112 +85,22 @@ def main():
         else:
             trainer_module = trainer
 
-        # Get the resume iteration to restart training
-        start_iteration = trainer_module.resume(checkpoint_path, config['resume']) if config['resume'] else 1
-
-        # iterable_train_loader = iter(train_loader)
-
-        # time_count = time.time()
-
-        # for iteration in range(start_iteration, config['niter'] + 1):
-        #     try:
-        #         ground_truth, x, emb, mask, map_onehot, _ = next(iterable_train_loader)
-        #     except StopIteration:
-        #         iterable_train_loader = iter(train_loader)
-        #         ground_truth, x, emb, mask, map_onehot, _ = next(iterable_train_loader)
-
-        #     # Prepare the inputs
-        #     if cuda:
-        #         x = x.cuda()
-        #         emb = emb.cuda()
-        #         mask = mask.cuda()
-        #         ground_truth = ground_truth.cuda()
-        #         map_onehot = map_onehot.cuda()
-
-        #     if iteration <= config['warmup_iter']:
-        #         # only calculate the reconstruction loss
-        #         trainer_module.optimizer_g.zero_grad()
-        #         compute_g_loss = True
-        #         losses, inpainted_result = trainer(x, emb, mask, ground_truth, map_onehot, compute_g_loss)
-        #         losses['g'] = losses['ae'] * config['ae_loss_alpha'] + \
-        #                       losses['l1'] * config['l1_loss_alpha'] + \
-        #                       losses['f1'] * config['f1_loss_alpha']
-        #         losses['g'].backward()
-        #         trainer_module.optimizer_g.step()
-
-        #     else:
-        #         compute_g_loss = iteration % config['n_critic'] == 0
-        #         losses, inpainted_result = trainer(x, emb, mask, ground_truth, map_onehot, compute_g_loss)
-        #         # Scalars from different devices are gathered into vectors
-        #         for k in losses.keys():
-        #             if not losses[k].dim() == 0:
-        #                 losses[k] = torch.mean(losses[k])
-
-        #         # Update D
-        #         trainer_module.optimizer_d.zero_grad()
-        #         losses['d'] = losses['wgan_d'] + losses['wgan_gp'] * config['wgan_gp_lambda']
-        #         losses['d'].backward()
-
-        #         # Update G
-        #         if compute_g_loss:
-        #             trainer_module.optimizer_g.zero_grad()
-        #             losses['g'] = losses['ae'] * config['ae_loss_alpha'] + \
-        #                           losses['l1'] * config['l1_loss_alpha'] + \
-        #                           losses['f1'] * config['f1_loss_alpha'] + \
-        #                           losses['wgan_g'] * config['gan_loss_alpha']
-        #             losses['g'].backward()
-        #             trainer_module.optimizer_g.step()
-        #         trainer_module.optimizer_d.step()  # put at last to prevent inplace op
-
         t = []
-        # evaluation and log
-        # iterable_train_loader = iter(train_loader)
-        # for n in range(len(train_loader)):
-        #     gt_e, x_e, emb_e, door_e, mask_e, map_onehot_e, _ = next(iterable_train_loader)
-        #     if cuda:
-        #         x_e = x_e.cuda()
-        #         emb_e = emb_e.cuda()
-        #         mask_e = mask_e.cuda()
-        #         gt_e = gt_e.cuda()
-        #         map_onehot_e = map_onehot_e.cuda()
-        #     start = time.time()
-        #     loss, res_e = trainer(x_e, emb_e, mask_e, gt_e, map_onehot_e, False)
-        #     t.append(time.time()-start)
-        #     viz_max_out = config['viz_max_out']
-
-        #     viz_images = torch.stack([x_e[:viz_max_out], res_e[:viz_max_out],
-        #                                 gt_e[:viz_max_out]], dim=1)
-
-        #     viz_images = viz_images.view(-1, *list(x_e.size())[1:])
-        #     vutils.save_image(viz_images,
-        #                         '%s/train_%s.png' % (checkpoint_path, n),
-        #                         nrow=3 * 4,
-        #                         normalize=True)
 
         eval_metrics = {'mae': [], 'iou': [], 'f1': []}
 
         iterable_eval_loader = iter(eval_loader)
         for n in range(len(eval_loader)):
-            gt_e, x_e, emb_e, door_e, mask_e, map_onehot_e, _ = next(iterable_eval_loader)
+            gt_e, x_e, door_e, mask_e, map_onehot_e, _ = next(iterable_eval_loader)
             if cuda:
                 x_e = x_e.cuda()
-                emb_e = emb_e.cuda()
                 door_e = door_e.cuda()
                 mask_e = mask_e.cuda()
                 gt_e = gt_e.cuda()
                 map_onehot_e = map_onehot_e.cuda()
             start = time.time()
-            metrics, res_e = evaluator.eval_step(x_e, emb_e, door_e, mask_e, map_onehot_e, eval_dataset.image_raw_shape,
+            metrics, res_e = evaluator.eval_step(x_e, door_e, mask_e, map_onehot_e, eval_dataset.image_raw_shape,
                                                 gt_e, calc_metrics=False)
-            # gt_e, x_e, emb_e, mask_e, map_onehot_e, _ = next(iterable_eval_loader)
-            # if cuda:
-            #     x_e = x_e.cuda()
-            #     emb_e = emb_e.cuda()
-            #     mask_e = mask_e.cuda()
-            #     gt_e = gt_e.cuda()
-            #     map_onehot_e = map_onehot_e.cuda()
-            # metrics, res_e = evaluator.eval_step(x_e, emb_e, mask_e, map_onehot_e, eval_dataset.image_raw_shape,
-            #                                     gt_e, calc_metrics=False)
             t.append(time.time()-start)
             for k, vl in eval_metrics.items():
                 vl.append(metrics[k])
@@ -213,36 +123,6 @@ def main():
             k = 'eval/' + k
             wangb_eval_log[k] = v
             writer.add_scalar(k, v)
-        # logger.info(message)
-
-            # # Log and visualization
-            # log_losses = ['l1', 'ae', 'f1', 'wgan_g', 'wgan_d', 'wgan_gp', 'g', 'd']
-            # if iteration % config['print_iter'] == 0:
-            #     elapsed = time.time() - time_count
-            #     speed = config['print_iter'] / elapsed
-            #     speed_msg = 'speed: %.2f batches/s ' % speed
-            #     time_count = time.time()
-
-            #     message = 'Iter: [%d/%d] ' % (iteration, config['niter'])
-            #     wandb_log = {}
-            #     for k in log_losses:
-            #         v = losses.get(k, 0.)
-            #         message += '%s: %.6f ' % (k, v)
-            #         k = 'loss/' + k
-            #         wandb_log[k] = v
-            #         writer.add_scalar(k, v, iteration)
-            #     if args.wandb:
-            #         wandb_log['speed'] = speed
-            #         wandb.log(wandb_log, step=iteration)
-            #     message += speed_msg
-            #     logger.info(message)
-
-            # if iteration % (config['viz_iter']) == 0:
-
-
-            # # Save the model
-            # if iteration % config['snapshot_save_iter'] == 0:
-            #     trainer_module.save_model(checkpoint_path, iteration)
 
     except Exception as e:  # for unexpected error logging
         logger.error("{}".format(e))

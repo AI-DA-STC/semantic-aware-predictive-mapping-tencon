@@ -5,67 +5,7 @@ from torchvision.transforms import ToPILImage
 from torch.nn.utils import spectral_norm as spectral_norm_fn
 from torch.nn.utils import weight_norm as weight_norm_fn
 
-from transformers import Qwen2_5_VLForConditionalGeneration, AutoProcessor
-from qwen_vl_utils import process_vision_info
-
 from PIL import Image
-
-class VLM():
-    def __init__(self):
-        self.model_id = "Qwen/Qwen2.5-VL-3B-Instruct"
-
-        self.model = Qwen2_5_VLForConditionalGeneration.from_pretrained(
-            self.model_id,
-            torch_dtype=torch.float,
-            device_map="auto",
-        )
-
-        # for param in self.model.parameters():
-        #     param.requires_grad = False
-
-        self.processor = AutoProcessor.from_pretrained(self.model_id)
-        self.transform = ToPILImage()
-
-    def forward(self,x):
-        # print(x.shape)
-        # images = []
-        # for img in x:
-            # print(img_tensor.shape)
-            # image = self.transform(img)
-            # Resize to 1024x1024
-            # resized = img.resize((900, 900), Image.BILINEAR)
-            # images.append(resized)
-
-        x = self.transform(x)
-        x = x.resize((900, 900), Image.BILINEAR)
-
-        inputs = self.processor(
-            text="",
-            images=x,
-            return_tensors="pt",
-        )
-
-        inputs = inputs.to(self.model.device)
-
-        with torch.no_grad():
-            # These are the visual tokens produced by the Qwen ViT + patch merger
-            vision_tokens = self.model.model.visual(
-                inputs["pixel_values"],
-                grid_thw=inputs["image_grid_thw"],
-            )
-            projected_tokens = self.model.model.visual.merger(vision_tokens["last_hidden_state"])
-
-        _, H, W = inputs["image_grid_thw"][0]
-        T = inputs["image_grid_thw"].shape[0]
-        D = vision_tokens["last_hidden_state"].shape[-1]
-
-        # vision_grid = vision_tokens["last_hidden_state"].view(T, H, W, -1)
-        # vision_grid = vision_grid.permute(0, 3, 1, 2)
-
-        vision_grid = projected_tokens.view(T, H, W, -1)
-        vision_grid = vision_grid.permute(0, 3, 1, 2)
-
-        return vision_grid
 
 
 class Generator(nn.Module):
@@ -110,14 +50,11 @@ class ImageGenerator(nn.Module):
         self.conv16 = gen_conv(cnum, cnum // 2, 3, 1, 1)
         self.conv17 = gen_conv(cnum // 2, input_dim, 3, 1, 1, activation='none')
 
-    def forward(self, image, emb, mask, onehot):
+    def forward(self, image, door, mask, onehot):
         onehot_expanded = onehot.view(onehot.size(0), onehot.size(1), 1, 1).expand(-1, -1, image.size(2), image.size(3))
-        # if self.use_cuda:
-            # mask = mask.cuda()
-            # emb = emb.cuda()
+
         # 5 x 256 x 256
-        # x = self.conv1(torch.cat([image, onehot_expanded, mask], dim=1))
-        x = self.conv1(torch.cat([image, onehot_expanded, mask, mask], dim=1))
+        x = self.conv1(torch.cat([image, onehot_expanded, door, mask], dim=1))
         x = self.conv2_downsample(x)
         # cnum*2 x 128 x 128
         x = self.conv3(x)
@@ -126,29 +63,12 @@ class ImageGenerator(nn.Module):
         x = self.conv5(x)
         x = self.conv6(x)
 
-        # _ = emb
-        # _ = self.conv12_1(_)
-        # x = x + _
-        # # x = self.conv12_2(x)
-
-        # _ = emb
-        # _ = self.conv12_1(_)
-        # x = _
-
-
         x = self.conv7_atrous(x)
         x = self.conv8_atrous(x)
         x = self.conv9_atrous(x)
         x = self.conv10_atrous(x)
         x = self.conv11(x)
         x = self.conv12(x)
-
-
-        # # x = torch.cat([x, _], dim=1)
-
-        # _ = emb
-        # _ = self.conv12_1(_)
-        # x = _
 
         x = F.interpolate(x, scale_factor=2, mode='nearest')
         # cnum*2 x 128 x 128
