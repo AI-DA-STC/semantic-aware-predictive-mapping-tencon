@@ -26,7 +26,7 @@ class ImageGenerator(nn.Module):
         super(ImageGenerator, self).__init__()
         self.use_cuda = use_cuda
 
-        self.conv1 = gen_conv(input_dim + 5, cnum, 5, 1, 2)
+        self.conv1 = gen_conv(input_dim + 4, cnum, 5, 1, 2)
         self.conv2_downsample = gen_conv(cnum, cnum * 2, 3, 2, 1)
         self.conv3 = gen_conv(cnum * 2, cnum * 2, 3, 1, 1)
         self.conv4_downsample = gen_conv(cnum * 2, cnum * 4, 3, 2, 1)
@@ -54,7 +54,7 @@ class ImageGenerator(nn.Module):
         onehot_expanded = onehot.view(onehot.size(0), onehot.size(1), 1, 1).expand(-1, -1, image.size(2), image.size(3))
 
         # 5 x 256 x 256
-        x = self.conv1(torch.cat([image, onehot_expanded, door, mask], dim=1))
+        x = self.conv1(torch.cat([image, onehot_expanded, mask], dim=1))
         x = self.conv2_downsample(x)
         # cnum*2 x 128 x 128
         x = self.conv3(x)

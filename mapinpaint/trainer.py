@@ -51,7 +51,7 @@ class Trainer(nn.Module):
         if compute_loss_g:
             sd_mask = spatial_discounting_mask(self.config, masks)
             door_mask = door_discounting_mask(self.config,door,masks)
-            sd_mask = sd_mask*1 + door_mask*100
+            # sd_mask = sd_mask*1 + door_mask*100
             x_inpaint_01 = (x_inpaint + 1) / 2
             ground_truth_01 = (ground_truth + 1) / 2
             intersection = (x_inpaint_01 * ground_truth_01).sum(dim=(1,2,3))
