@@ -5,7 +5,7 @@ Code accompanying **“Semantic-Aware Predictive Mapping for Exploration and Nav
 **Authors:** Kenneth J. K. Ong and William W. J. Teo
 
 **Project Page:** [https://ai-da-stc.github.io/semantic-aware-predictive-mapping-tencon/](https://ai-da-stc.github.io/semantic-aware-predictive-mapping-tencon/)  
-**arXiv:** [https://arxiv.org/abs/XXXX.XXXXX](https://arxiv.org/abs/XXXX.XXXXX) *(placeholder — update once available)*
+**arXiv:** [https://arxiv.org/abs/2610.10382](https://arxiv.org/abs/2610.10382)
 
 This repository contains the predictive map-inpainting implementation used to compare a **semantic-aware model** against a **geometry-only control**. The implementation builds on the predictive mapping / inpainting formulation used by CogniPlan.
 
