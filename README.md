@@ -271,11 +271,15 @@ Please also cite CogniPlan when using code derived from its predictive mapping i
 If you use this repository or the associated work, please cite:
 
 ```bibtex
-@inproceedings{ong2026semantic,
-  title     = {Semantic-Aware Predictive Mapping for Exploration and Navigation},
-  author    = {Ong, Kenneth J. K. and Teo, William W. J.},
-  booktitle = {2026 IEEE Region 10 Conference (TENCON)},
-  year      = {2026}
+@misc{ong2026semanticaware,
+      title={Semantic-Aware Predictive Mapping for Exploration and Navigation}, 
+      author={Kenneth J. K. Ong and William W. J. Teo},
+      year={2026},
+      eprint={2610.10382},
+      archivePrefix={arXiv},
+      primaryClass={cs.RO},
+      url={https://arxiv.org/abs/2610.10382},
+      note={Accepted at IEEE TENCON 2026}
 }
 ```
 
